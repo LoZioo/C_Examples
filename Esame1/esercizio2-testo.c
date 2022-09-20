@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define STRING_SIZE 64
 
@@ -41,7 +42,7 @@
 typedef struct node_content{
 	char nome[STRING_SIZE];
 	char cognome[STRING_SIZE];
-	char operazione[STRING_SIZE];
+	int operazione;
 } node_content_t;
 
 typedef struct node{
@@ -49,8 +50,10 @@ typedef struct node{
 	struct node *next;
 } node_t;
 
-int sizelist(node_t *list);
-node_t* enque (node_t *list, node_content_t *contenuto);
+int list_size(node_t **list);
+void enque(node_t **list, node_content_t content);
+node_content_t deque(node_t **list);
+void list_print(node_t **list);
 
 FILE *struttura, *prenotati;
 
@@ -60,9 +63,6 @@ char **op;
 node_t **code;
 
 node_t *serviti;
- 
- node_content_t dieta;
-
 
 int main(){
 	struttura = fopen(STRUTTURA_TXT, "r");
@@ -81,44 +81,130 @@ int main(){
 	
 	code = malloc(n_ops * sizeof(node_t*));
 
+	//Lettura operazioni da Struttura.txt.
 	for(int i=0; i<n_ops; i++)
 		fscanf(struttura, "%s", op[i]);
-	
-	// for(int i=0; i<n_ops; i++)
-	// 	printf("%s\n", op[i]);
 
 	fclose(struttura);
 
-	printf("%d", sizelist (code[1]));
 
-	dieta.nome = piero;
- 	dieta.cognome = fasulli;
- 	dieta.operazione = pacco;
- 
 
-	enque(v[1], dieta);
+	prenotati = fopen(PRENOTATI_TXT, "r");
+
+	char nome[STRING_SIZE], cognome[STRING_SIZE], operazione[STRING_SIZE];
+	int op_index;
+
+	while(!feof(prenotati)){
+		fscanf(prenotati, "%s %s %s", nome, cognome, operazione);
+
+		op_index = 0;
+		int trovato = 0;
+		while(op_index < n_ops && !trovato){
+			if(strcmp(op[op_index], operazione) == 0)
+				trovato = 1;
+			
+			op_index++;
+		}
+		op_index--;
+
+		//La ricerca finisce sempre con successo, quindi non c'è bisogno dell'if di verifica...
+		node_content_t nuovo;
+
+		strcpy(nuovo.nome, nome);
+		strcpy(nuovo.cognome, cognome);
+		nuovo.operazione = op_index;
+
+		//Metto in coda l'elemento nuovo.
+		enque(&code[op_index], nuovo);
+	}
+
+	fclose(prenotati);
+
+	list_print(&code[0]);
+	list_print(&code[1]);
+	list_print(&code[2]);
+
+	// for(int i=0; i<n_ops; i++)
+	// 	printf("%s\n", op[i]);
 
 	return 0;
 }
 
-int sizelist(node_t *list){
-	int n=0;
-	while(list != NULL){
-		list = list->next;
+int list_size(node_t **list){
+	int n = 0;
+
+	node_t *node = *list;
+	while(node != NULL){
+		node = node->next;
 		n++;
 	}
+
 	return n;
 }
 
-node_t* enque(node_t *list, node_content_t contenuto){
-	node_t tmp;
-	
-	if(list==NULL){
-		tmp.data = contenuto;
-		list = list->next;
+void enque(node_t **list, node_content_t content){
+	if(*list == NULL){
+	  *list = malloc(sizeof(node_t));
 
+		(*list)->data = content;
+		(*list)->next = NULL;
+		
+		return;
 	}
 
-	return list;
+	//Creo il nuovo nodo.
+	node_t *head = malloc(sizeof(node_t));
+
+	head->data = content;
+	head->next = *list;
+
+	*list = head;
 }
 
+node_content_t deque(node_t **list){
+	node_content_t tmp;
+	
+	if(*list == NULL){
+		strcpy(tmp.nome, "");
+		strcpy(tmp.cognome, "");
+		tmp.operazione = -1;
+
+		return tmp;
+	}
+
+	//Un solo elemento da estrarre.
+	if(list_size(list) == 1){
+		tmp = (*list)->data;
+		
+		free(*list);
+		*list = NULL;
+
+		return tmp;
+	}
+
+	//Dobbiamo fare puntare node al penultimo nodo.
+	node_t *node = *list;
+	while(node->next->next != NULL)
+		node = node->next;
+	
+	tmp = node->next->data;
+
+	free(node->next);
+	node->next = NULL;
+
+	return tmp;
+}
+
+void list_print(node_t **list){
+	if(*list == NULL){
+		printf("Lista vuota.\n");
+		return;
+	}
+
+	while(*list != NULL){
+		printf("%s, %s, %s\n", (*list)->data.nome, (*list)->data.cognome, op[(*list)->data.operazione]);
+		(*list) = (*list)->next;
+	}
+
+	printf("\n");
+}
